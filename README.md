@@ -8,5 +8,6 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 
 **Presentations:**
 
+- [Introductory Session](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf)
 
 **Tutorials:**
