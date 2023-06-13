@@ -1,0 +1,503 @@
+---
+title: "Spatial analysis with R"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries and data
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(sf)
+```
+
+
+## Out toy data
+
+- Bogota: [Population by UPZ](https://bogota-laburbano.opendatasoft.com/explore/dataset/poblacion-upz-bogota/map/?location=10,4.63327,-74.11668&basemap=jawg.streets)
+- Bogota (with SES)
+- Bogota: mass transit stations
+- Bogota: mass transit trunk lines
+- Bogota: [Bicycle parking spots](https://www.simur.gov.co/datos-abiertos) 
+
+Disclaimer: These files might be wrong or outdated. Do not use them for research or serious projects. 
+
+
+# Warm up
+
+## Read (import)
+
+```{r}
+Zones <- st_read(dsn = "Data/Bogota_UPZ_Population.shp")
+
+Zones_SES <- st_read("Data/Bogota_NSE.shp")
+
+BRT_Stations <- st_read("Data/Bogota_BRT_Stations.shp")
+
+BRT_Trunk <- st_read("Data/Bogota_BRT_TrunckLines.shp")
+
+Bicycle_ParkingSpots <- st_read("Data/Bogota_BicycleParkingSpots.shp")
+```
+
+```{r}
+class(Zones)
+class(Zones_SES)
+class(BRT_Stations)
+class(BRT_Trunk)
+class(Bicycle_ParkingSpots)
+```
+```{r}
+dim(Zones)
+dim(Zones_SES)
+dim(BRT_Stations)
+dim(BRT_Trunk)
+dim(Bicycle_ParkingSpots)
+```
+
+
+## Write (export)
+
+```{r}
+# st_write(obj = BRT_Stations, dsn = "ChooseTheName.shp")
+```
+
+## Basic mapping
+
+The following is a mess!
+
+```{r}
+plot(Zones)
+```
+
+If you want to see the geometry, you do this:
+
+```{r}
+plot(st_geometry(Zones))
+```
+
+For a choroplet map: 
+
+```{r}
+plot(Zones["poblacion_"])
+```
+
+The intuitive way fails here:
+
+```{r}
+plot(Zones$poblacion_)
+```
+
+But the tidy intuitive way does not
+
+```{r}
+plot(Zones %>% select(poblacion_))
+```
+
+
+You can improve your map in many ways. *Neverheless,* we will use the *tmap* library for all the map-making and to produce images. Another alternative is to use *ggplot2*. You can also produce interactive maps with the *leaflet* library.
+
+
+
+## CSR
+
+Planet earth is not a flat surface and is not perfectly round. Nevertheless, when you make maps you have to put a certain geographic area in two dimensions. This gets even more complicated if  you consider mountains and different sea levels. <br/>
+
+Projections are the way we transform the shape of the earth (or an area) to only two dimensions. There are many projections and all have some level of distortion. You can see the [section 2.4](https://geocompr.robinlovelace.net/spatial-class.html#crs-intro) from the **Geocomputation With R** book for a clear introduction to the topic. So far, you have to know that every **sf** object has a Coordinate Referense System (CRS) that can be configured using **EPSG** codes. There are **geographic** projections where the notion of distance is not related to a regular understanding of distance (it is not in meter or icnhes). In **Projected** projections on the other hand, the distance is in meters.  <br/>
+
+In the past, many *sf* functions did not distinguish **geographic** projections from **projected** when running some operation sus as buffers or distances calculations. I understand this is not longer an isse, but I recommend you to doublecheck every output.  <br/>
+
+How to get the CRS?
+
+```{r}
+st_crs(x = Zones)
+```
+
+```{r}
+st_crs(BRT_Stations)
+```
+
+```{r}
+st_crs(Zones) == st_crs(BRT_Stations)
+```
+The function **st_transform()** changes the CRS (re-project) of any sf object. On the other hand, the **st_set_crs()** function *assigns* (sets) a CRS, but *is not projecting* the object. The **st_set_crs()** function is useful, for example, when you manually collect data or when you have a file with missing CRS
+
+```{r}
+Zones_Projected <- st_transform(Zones, 3116)
+```
+
+```{r}
+st_crs(Zones) == st_crs(Zones_Projected) 
+```
+
+```{r}
+st_is_longlat(Zones)
+st_is_longlat(Zones_Projected)
+```
+
+
+# Basic tidy operations
+
+An *sf* objects works just like as *data.frame* or *tibble*. It is a table (databe) with one additional column for the geometry that is "ignored" for certain operations. 
+
+## summary
+
+```{r}
+summary(Zones$poblacion_)
+```
+
+```{r}
+glimpse(Zones)
+```
+
+
+## Filter
+
+```{r}
+Zones_A <- Zones %>% filter(poblacion_ < 64000)
+dim(Zones)
+dim(Zones_A)
+```
+
+```{r}
+plot(st_geometry(Zones_A))
+```
+
+## Mutate
+
+```{r}
+Zones %<>% 
+  mutate(Density = poblacion_/area_urban) %>% 
+  mutate(Classification = if_else(poblacion_ < 64000, "small", "large"))
+```
+
+
+## group_by()
+
+```{r}
+Zones %>% group_by(nomb_loc) %>% 
+  summarise(Total_UPZ = n())
+```
+
+```{r}
+Zones %>% group_by(nomb_loc) %>% 
+  summarise(Total_UPZ = n(),
+            TotalPopulation = sum(poblacion_))
+```
+
+
+## No geometry
+
+```{r}
+Zones_Data <- Zones %>% st_set_geometry(NULL)
+```
+
+```{r}
+class(Zones_Data)
+Zones_Data
+```
+
+```{r}
+Zones_Data <- Zones %>% st_drop_geometry()
+Zones_Data
+```
+
+```{r}
+Zones %>% 
+  st_set_geometry(NULL) %>% 
+  group_by(nomb_loc) %>% 
+  summarise(Total_UPZ = n(),
+            TotalPopulation = sum(poblacion_))
+```
+
+# Spatial Operations
+
+## Union
+
+```{r}
+Bogota <- st_union(Zones)
+plot(st_geometry(Bogota))
+
+# st_combine() is not the best way to go
+```
+
+```{r}
+Bogota_Localidades <- Zones %>% 
+  group_by(cod_loc) %>% 
+  summarise(Total_UPZ = n(),
+            TotalPopulation = sum(poblacion_))
+```
+
+```{r}
+plot(st_geometry(Bogota_Localidades))
+```
+
+```{r}
+Bogota_Localidades_Name <- Zones %>% 
+  group_by(nomb_loc) %>% 
+  summarise(Total_UPZ = n(),
+            TotalPopulation = sum(poblacion_))
+```
+
+## Joining 
+
+```{r}
+Localidad_SantaFe <- Bogota_Localidades_Name %>% filter(nomb_loc == "SANTA FE")
+
+Localidad_Chapinero <- Bogota_Localidades_Name %>% filter(nomb_loc == "CHAPINERO")
+
+
+SantaFe_Chapinero <- bind_rows(Localidad_SantaFe, Localidad_Chapinero)
+# SantaFe_Chapinero <- rbind(Localidad_SantaFe, Localidad_Chapinero)
+```
+
+```{r}
+plot(st_geometry(SantaFe_Chapinero))
+```
+
+## Centroids
+
+```{r}
+Zones_Centroids <- st_centroid(Zones)
+plot(st_geometry(Zones_Centroids))
+```
+
+```{r}
+plot(st_geometry(Zones))
+plot(st_geometry(Zones_Centroids), add = TRUE)
+```
+
+## Points in polygons
+
+```{r}
+plot(st_geometry(Bicycle_ParkingSpots))
+```
+
+```{r}
+plot(st_geometry(Bogota_Localidades))
+plot(st_geometry(Bicycle_ParkingSpots), add = TRUE)
+```
+
+```{r}
+st_crs(Bogota_Localidades) == st_crs(Bicycle_ParkingSpots)
+```
+
+```{r}
+st_crs(Bogota_Localidades) #EPSG: 4326
+st_crs(Bicycle_ParkingSpots) # EPSG: 3857
+```
+
+```{r}
+Bicycle_ParkingSpots <- st_transform(Bicycle_ParkingSpots, 4326)
+st_crs(Bogota_Localidades) == st_crs(Bicycle_ParkingSpots)
+```
+
+```{r}
+plot(st_geometry(Bogota_Localidades))
+plot(st_geometry(Bicycle_ParkingSpots), add = TRUE)
+```
+
+```{r}
+SpotsInLocalities <- st_join(Bicycle_ParkingSpots, Bogota_Localidades)
+```
+
+```{r}
+class(SpotsInLocalities)
+SpotsInLocalities
+```
+
+```{r}
+names(Bicycle_ParkingSpots)
+names(SpotsInLocalities)
+```
+
+```{r}
+SpotsInLocalities %>% 
+  st_drop_geometry() %>% 
+  group_by(cod_loc) %>% summarise(ParkingSpots = n())
+```
+
+```{r}
+Bogota_Localidades %<>%
+  left_join(
+    SpotsInLocalities %>% 
+      st_drop_geometry() %>% 
+      group_by(cod_loc) %>% summarise(ParkingSpots = n())
+  )
+```
+
+```{r}
+plot(Bogota_Localidades["ParkingSpots"])
+```
+
+
+## Buffers (points)
+
+```{r}
+Temp <- st_centroid(SantaFe_Chapinero)
+Temp <- st_transform(Temp, 3116)
+
+st_is_longlat(Temp)
+
+Point1 <- Temp %>% slice(1)
+Point2 <- Temp %>% slice(2)
+```
+
+```{r}
+Buffer1 <- st_buffer(Point1, 2000)  #The units are un meters
+Buffer2 <- st_buffer(Point2, 2000)
+```
+
+
+```{r}
+plot(st_geometry(st_transform(SantaFe_Chapinero, 3116)))
+plot(st_geometry(Buffer1), add = TRUE)
+plot(st_geometry(Buffer2), add = TRUE)
+```
+
+```{r}
+Buffers <- bind_rows(Buffer1, Buffer2)
+# st_write(Buffers, "Data/Buffers_Tests.shp")
+
+rm(Buffers)
+
+# st_write(Temp, "Data/Centroids_Test.shp")
+```
+
+You probably want to change the EPSG before exporing the files. 
+
+Take a look at the buffers in QGIS, what do you think?
+[Here is the answer](https://r.geocompx.org/geometry-operations.html#buffers)
+
+
+## Buffers (lines)
+
+```{r}
+plot(st_geometry(BRT_Trunk))
+```
+
+```{r}
+st_is_longlat(BRT_Trunk)
+```
+
+```{r}
+BRT_Trunk_Proj <- st_transform(BRT_Trunk, 3116)
+```
+
+```{r}
+Lines_Buffer <- st_buffer(BRT_Trunk, 600)  #The units are un meters
+```
+
+```{r}
+plot(st_geometry(Lines_Buffer))
+```
+
+```{r}
+Lines_Buffer_Union_1 <- st_combine(Lines_Buffer)
+plot(st_geometry(Lines_Buffer_Union_1, singleSide = FALSE))
+```
+
+```{r}
+Lines_Buffer_Union_2 <- st_union(Lines_Buffer)
+plot(st_geometry(Lines_Buffer_Union_2, singleSide = FALSE))
+```
+
+## Intersection
+
+
+```{r}
+TwoPolygons <- Bogota_Localidades %>% 
+  st_transform(3116) %>% st_centroid() %>% slice(1,2) %>% st_buffer(6000) %>% 
+  st_transform(4326)
+
+plot(st_geometry(TwoPolygons))
+```
+
+```{r}
+Polygon1 <- TwoPolygons %>% slice(1)
+Polygon2 <- TwoPolygons %>% slice(2)
+```
+
+```{r}
+Intersection <- st_intersection(Polygon1,Polygon2)
+#Try st_intersects(Polygon1, Polygon2)
+```
+```{r}
+plot(st_geometry(Intersection))
+```
+
+```{r}
+plot(st_geometry(TwoPolygons))
+plot(st_geometry(Intersection), col = "darkgreen", add = TRUE)
+```
+
+
+## Difference
+
+```{r}
+Difference1 <- st_difference(Polygon1, Polygon2)
+```
+
+```{r}
+plot(st_geometry(TwoPolygons))
+plot(st_geometry(Difference1), col = "darkgreen", add = TRUE)
+```
+
+```{r}
+Difference2 <- st_difference(Polygon1, Polygon2)
+```
+
+```{r}
+plot(st_geometry(TwoPolygons))
+plot(st_geometry(Difference2), col = "darkgreen", add = TRUE)
+```
+
+## Distances
+
+```{r}
+Points <- Bogota_Localidades %>% st_centroid()
+```
+```{r}
+st_distance(Points[1,], Points[2,])
+```
+```{r}
+st_distance(Points[1,], Points %>% slice(1:10))
+```
+
+
+## Areas (of polygons)
+
+```{r}
+Bogota_Localidades
+```
+
+```{r}
+Bogota_Localidades %>% st_area()
+```
+```{r}
+Bogota_Localidades %>% 
+  mutate(AreaTotal = st_area(.))
+```
+
+
+## Length (of lines)
+
+```{r}
+BRT_Trunk %>% st_length()
+```
+
+
+# Recommended readings
+
+- [Spatial Manipulation with sf: CHEAT SHEET](https://github.com/rstudio/cheatsheets/blob/main/sf.pdf)
+- Chapters 2 to 7 in the [Geocomputation with R book](https://bookdown.org/robinlovelace/geocompr/)
+- Chapters 1 to 6 in tne [Spatial Data Science book](https://r-spatial.org/book/)
+- [All articles in the sf website](https://r-spatial.github.io/sf/index.html)
+
