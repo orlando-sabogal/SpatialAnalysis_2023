@@ -47,22 +47,31 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 </ul>
 
 
-- [Introductory Session](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf)
-- [Spatial Autocorrelation - Part A](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_A.pdf)
-- [Spatial Autocorrelation - Part B](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_B.pdf)
-- [LISA](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/02_LISA.pdf)
-- [Linear Regression](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/03_LinearRegression.pdf)
-- [Spatial Regression](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/04_SpatialRegression.pdf)
-- [GWR](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/05_GWR.pdf)
-- [Spatial Panel Models](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/06_SpatialPaneModels.pdf)
-
 <h2 style="font-family: 'Montserrat', sans-serif; font-weight: bold;">Tutorials:</h2>
 
-- [Spatial analysis with R](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/02_R_Spatial/SpatialAnalysWithR.nb.html)
-- [Map Making - tmap](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_tmaps.nb.html)
-- [Map Making - leaflet](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_leaflet.nb.html)
-- [Case study: Mexico HTS](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/04_MexicoCity_HTS/Data%20Wrangling.nb.html)
-- [Morans's I](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/05_MoransI/MoransI.nb.html)
-- [Linear Regression]()
-- [Spatial Regression](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/07_SpatialRegression/SpatialRegression.nb.html)
-- [GWR](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/08_GWR/GWR.nb.html)
+<ul>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/02_R_Spatial/SpatialAnalysWithR.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial analysis with R</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_tmaps.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Map Making - tmap</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_leaflet.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Map Making - leaflet</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/04_MexicoCity_HTS/Data%20Wrangling.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Case study: Mexico HTS</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/05_MoransI/MoransI.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Moran's I</strong></a>
+  </li>
+  <li>
+    <a href="#" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Linear Regression</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/07_SpatialRegression/SpatialRegression.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial Regression</strong></a>
+  </li>
+  <li>
+    <a href="https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/08_GWR/GWR.nb.html" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>GWR</strong></a>
+  </li>
+</ul>
