@@ -1,3 +1,10 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Optima&display=swap');
+</style>
+
+<p style="font-family: 'Optima', sans-serif;">This text uses the Optima font.</p>
+
+
 # SpatialAnalysis_2023
 
 **Introduction:**
