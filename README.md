@@ -21,9 +21,10 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 **Tutorials:**
 
 - [Spatial analysis with R](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/02_R_Spatial/SpatialAnalysWithR.nb.html)
-- [Map Making]()
-- [Case study: Mexico HTS]()
-- [Morans's I]()
+- [Map Making - tmap](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_tmaps.nb.html)
+- [Map Making - leaflet](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_leaflet.nb.html)
+- [Case study: Mexico HTS](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/04_MexicoCity_HTS/Data%20Wrangling.nb.html)
+- [Morans's I](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/05_MoransI/MoransI.nb.html)
 - [Linear Regression]()
-- [Spatial Regression]()
-- [GWR]()
+- [Spatial Regression](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/07_SpatialRegression/SpatialRegression.nb.html)
+- [GWR](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/08_GWR/GWR.nb.html)
