@@ -7,45 +7,67 @@
     @import url('https://fonts.googleapis.com/css2?family=Optima&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
 
+    body {
+      font-family: 'Optima', sans-serif;
+      margin: 55px;
+      padding: 0;
+    }
+
     h1 {
       text-align: center;
       font-family: 'Montserrat', sans-serif;
       font-weight: bold;
+      font-size: 36px; /* Adjust the font size as desired */
+      margin-top: 40px;
     }
 
     h2 {
       font-family: 'Montserrat', sans-serif;
       font-weight: bold;
+      margin-top: 30px;
     }
 
     p {
-      font-family: 'Optima', sans-serif;
+      font-size: 20px;
+      margin-bottom: 20px;
     }
 
     table {
       margin-left: auto;
       margin-right: auto;
+      margin-top: 40px;
+      border-collapse: collapse;
     }
 
     th, td {
       text-align: center;
+      padding: 10px 20px;
+    }
+
+    th {
+      font-size: 22px;
+      background-color: #f2f2f2;
+    }
+
+    td {
+      font-size: 18px;
     }
 
     a {
-      font-family: 'Optima', sans-serif;
       color: #0000ff;
       text-decoration: none;
+      transition: font-size 0.2s, color 0.2s;
     }
 
     a:hover {
-      font-size: 110%;
+      font-size: 24px;
       color: #00008b;
     }
   </style>
 </head>
 <body>
   <h1>Spatial Analysis</h1>
-
+  <p style="text-align: center; font-family: 'Optima', sans-serif;">by <a href="https://twitter.com/AntonioSabogal">Orlando Sabogal-Cardona</a></p>
   <h2>Introduction:</h2>
   <p>
     Throughout this course, we will delve into a diverse array of spatial analysis techniques, equipping you with the theoretical foundation and practical skills necessary to navigate spatial data challenges. Our journey will encompass essential topics, including geo-spatial operations, spatial autocorrelation, Moran's I, Local Indicators of Spatial Association (LISA), spatial regression, and Geographically Weighted Regression (GWR).
