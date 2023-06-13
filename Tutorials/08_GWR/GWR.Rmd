@@ -1,0 +1,202 @@
+---
+title: "GWR"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries and raw data
+
+```{r libraries used}
+library(tidyverse)
+library(magrittr)
+library(sf)
+library(tmap)
+
+library(spdep) # Spatial weights, Moran's I, and LISA
+library(spatialreg) # Spatial Regression
+
+library(spgwr) # GWR
+```
+
+```{r}
+load("../03_MexicoCity_HTS/Mexico_HTS.RData")
+ls()
+```
+
+## Remove districts
+
+```{r}
+summary(MexicoCity_HTS$TotalPeople)
+MexicoCity_HTS %>% filter(is.na(TotalPeople)) %>% select(Distrito)
+```
+
+```{r}
+MexicoCity_HTS %<>% filter(Distrito != "034")
+```
+
+```{r}
+summary(MexicoCity_HTS$Total_Homes)
+```
+
+## Map preparation
+
+```{r}
+MexicoCity_Fringe <- st_read("../03_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
+```
+
+```{r}
+BB_Districts <- st_bbox(MexicoCity_HTS)
+BB_Districts[1] <- -99.8
+BB_Districts
+```
+
+# GWR
+
+```{r}
+ModelEquation <- "CarTrips_PerPopulation ~ 
+                          Prop_Male + 
+                          Prop_HomesWithCars + 
+                          Prop_HomesWithBicycles +
+                          # Prop_Education_Low + 
+                          Age"
+```
+
+```{r}
+st_is_longlat(MexicoCity_HTS)
+```
+
+```{r}
+Data_SP <- as(MexicoCity_HTS, "Spatial")
+Data_Centroids <- st_centroid(MexicoCity_HTS)
+
+Data_Centroids_SP <- as(Data_Centroids, "Spatial")
+```
+
+```{r}
+Data_Centroids_SP <- as(Data_Centroids, "Spatial")
+```
+
+```{r}
+Bandwidth = gwr.sel(ModelEquation, 
+                    data = Data_SP, adapt = T)
+```
+
+
+```{r}
+Model_GWR = gwr(ModelEquation, 
+                data = Data_SP, 
+                adapt = Bandwidth, 
+                hatmatrix = T, 
+                se.fit = T)
+```
+
+```{r}
+Model_GWR
+```
+
+```{r}
+results <- as.data.frame(Model_GWR$SDF)
+names(results)
+```
+## Homes with cars
+
+```{r}
+Temp <- results %>% 
+  select(Variable = Prop_HomesWithCars, SE = Prop_HomesWithCars_se) %>% 
+  mutate(T_value = Variable/SE) %>% 
+  mutate(Significance = cut(T_value,
+                            breaks = c(-0.01 + min(T_value), 
+                                       -1.96, 1.96, 
+                                       0.01 + max(T_value)),
+                            labels = c("sig","nonsig", "sig")))
+
+Temp_GWR_Coefficient <- Data_SP
+
+Temp_GWR_Coefficient$Variable <- Temp$Variable
+Temp_GWR_Coefficient$SE <- Temp$SE
+Temp_GWR_Coefficient$T_value <- Temp$T_value
+Temp_GWR_Coefficient$Significance <- Temp$Significance
+
+Temp_GWR_Coefficient <- as(Temp_GWR_Coefficient,"sf")
+
+Temp_GWR_Coefficient %<>% select(Variable, SE, T_value, Significance) 
+
+Temp_GWR_Coefficient_SIGNIGICANT <- Temp_GWR_Coefficient %>% 
+  filter(Significance == "sig")
+Temp_GWR_Coefficient_NON_SIGNIGICANT <- Temp_GWR_Coefficient %>% 
+  filter(Significance != "sig")
+```
+
+```{r}
+summary(Temp_GWR_Coefficient_SIGNIGICANT$Variable)
+```
+
+```{r}
+Q <- quantile(Temp_GWR_Coefficient_SIGNIGICANT$Variable, 
+         probs = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+Q
+```
+
+```{r}
+Breaks <- c(
+  as.numeric(Q[1]), as.numeric(Q[2]),
+  as.numeric(Q[3]), as.numeric(Q[4]),
+  as.numeric(Q[5]), as.numeric(Q[6]))
+
+Labels <- c(
+  paste(floor(Breaks[1]*1000)/1000, round(Breaks[2], 3), sep = " - "),
+  paste(round(Breaks[2], 3), round(Breaks[3], 3), sep = " - "),
+  paste(round(Breaks[3], 3), round(Breaks[4], 3), sep = " - "),
+  paste(round(Breaks[4], 3), round(Breaks[5], 3), sep = " - "),
+  paste(round(Breaks[5], 3), ceiling(Breaks[6]*1000)/1000, sep = " - "))
+
+MyPalette <- c("#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494")
+```
+
+```{r}
+GWR_Map_Cars <- tm_shape(MexicoCity_Fringe, bbox = BB_Districts) + 
+  tm_polygons(lwd = 2.5, border.col = "black") +
+  tm_shape(Temp_GWR_Coefficient_SIGNIGICANT) + 
+  tm_polygons("Variable",
+          palette = MyPalette, lwd = 0, border.col = "black", border.alpha = 0,
+          title = "Theft (quantiles)", 
+          breaks = Breaks, labels = Labels) +
+  # tm_shape(Temp_GWR_Coefficient_NON_SIGNIGICANT) +
+  # tm_polygons(col = "white") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) +
+  tm_scale_bar(position = c(0.2,0.02)) +
+  tm_layout(title = "Car ownership", legend.position = c(0.01, 0.58)) +
+  tm_add_legend(
+    type = c("fill"),
+    labels = c("Not significant"), 
+    col = c("white"),
+    title = "")
+
+
+GWR_Map_Cars
+```
+
+```{r}
+GWR_Map_Cars <- tm_shape(Temp_GWR_Coefficient_SIGNIGICANT) + 
+  tm_polygons("Variable",
+          palette = MyPalette, lwd = 0, border.col = "black", border.alpha = 0,
+          title = "Quantiles", 
+          breaks = Breaks, labels = Labels) +
+  tm_borders(alpha = 0.4) +
+  tm_shape(MexicoCity_Fringe) + 
+  tm_polygons(alpha = 0, border.col = "black", lwd = 1.4, lty = "solid") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) + 
+  tm_scale_bar(position = c(0.4,0.02)) +
+  tm_layout(title = "Cars", legend.position = c(0.01,0.15), scale = 1)
+
+
+GWR_Map_Cars
+```
+

@@ -9,5 +9,21 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 **Presentations:**
 
 - [Introductory Session](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf)
+- [Spatial Autocorrelation - Part A](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_A.pdf)
+- [Spatial Autocorrelation - Part B](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_B.pdf)
+- [LISA](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/02_LISA.pdf)
+- [Linear Regression](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/03_LinearRegression.pdf)
+- [Spatial Regression](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/04_SpatialRegression.pdf)
+- [GWR](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/05_GWR.pdf)
+- [Spatial Panel Models](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/06_SpatialPaneModels.pdf)
+
 
 **Tutorials:**
+
+- [Spatial analysis with R](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/02_R_Spatial/SpatialAnalysWithR.nb.html)
+- [Map Making]()
+- [Case study: Mexico HTS]()
+- [Morans's I]()
+- [Linear Regression]()
+- [Spatial Regression]()
+- [GWR]()

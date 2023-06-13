@@ -1,0 +1,497 @@
+---
+title: "tmap - tutorial"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries
+
+```{r}
+library(tidyverse)
+library(sf)
+library(tmap)
+```
+
+<br/>
+<hr/>
+
+# What it tmap
+
+- "The short answer is that tmap is an R package for visualization spatial data. The slightly longer answer is that tmap allows users to explore, analyze, and present spatial data in a intuitive way." (Martijn Tennekes & Jakub, 2021 Nowosad)[https://r-tmap.github.io/tmap-book/intro.html]
+- You can create static or interactive maps
+- Conceptually, it is similar to ggplot and the *layered grammar of graphics*
+
+# Data
+
+```{r}
+Accidents <- st_read("Montevideo_Data/Accidentes2006-2010/accidentes2006-2010.shp")
+Accidents = st_set_crs(Accidents, 32721)
+
+Stations <- st_read("Montevideo_Data/afe_estaciones/afe_estaciones.shp")
+Stations <- st_set_crs(Stations, 32721)
+
+Uruguay <- st_read("Montevideo_Data/Vectoriales_2011/ine_depto.shp")
+Uruguay <- st_set_crs(Uruguay, 32721)
+
+Bicicircuitos <- st_read(
+  "Montevideo_Data/CyclingMontevideoData/v_bi_bicicircuitos/v_bi_bicicircuitos.shp")
+
+```
+
+# Rudiments
+
+```{r}
+tm_shape(Uruguay) + 
+  tm_polygons()
+```
+
+```{r}
+tm_shape(Uruguay) + 
+  tm_fill()
+```
+
+```{r}
+tm_shape(Uruguay) + 
+  tm_fill() +
+  tm_layout(bg.color = "lightblue")
+```
+```{r}
+tm_shape(Uruguay) + 
+  tm_borders(col = "black", lwd = 0.5, lty = "dashed")
+```
+
+```{r}
+Montevideo <- Uruguay %>% filter(NOMBRE == "MONTEVIDEO")
+```
+
+```{r}
+tm_shape(Montevideo) + 
+  tm_polygons() +
+  tm_shape(Accidents) + tm_bubbles()
+```
+
+```{r}
+tm_shape(Montevideo) + 
+  tm_polygons() +
+  tm_shape(Accidents) + tm_bubbles() +
+  tm_layout(frame = FALSE)
+```
+
+```{r}
+MyMap <- tm_shape(Uruguay) + 
+  tm_polygons(col = "deepskyblue1") 
+
+MyMap
+```
+
+```{r}
+st_bbox(Uruguay)
+st_bbox(Montevideo)
+```
+
+
+```{r}
+tm_shape(Uruguay, bbox = st_bbox(Montevideo)) + 
+  tm_polygons(col = "deepskyblue1") 
+```
+
+
+[Nort Carolina SIDS data](https://nowosad.github.io/spData/reference/nc.sids.html)
+
+```{r}
+nc = st_read(system.file("shape/nc.shp", package="sf"))
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79")
+```
+
+```{r}
+tm_shape(nc) + tm_fill(col = "BIR79")
+```
+
+```{r}
+tm_shape(nc) + tm_fill(col = "BIR79") + tm_borders()
+```
+
+<br/>
+<hr/>
+
+# The road to a map
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79")
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79") + 
+  tm_compass() + tm_scale_bar()
+```
+
+## Legends - tm_layout function
+
+```{r}
+tm_shape(nc) + tm_polygons(col="BIR79") + 
+   tm_layout(legend.outside = TRUE, frame = FALSE)
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col="BIR79") + 
+    tm_layout(legend.position = c(0.2, 0.03),
+              scale = 0.8,
+              legend.frame = T)
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T)
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(title = "THI IS MY TITLE",
+              legend.position = c(0.01, 0.05),
+              scale = 0.9,
+              legend.frame = T) + 
+   tm_add_legend(type = c("fill"),
+                labels = c("Some Area", "Other Area"), 
+                col = c("#66c2a5", "#e5c494"),
+                title = "Other Areas") +
+  tm_add_legend(type = "symbol", 
+                labels = c("A point", "Other Point"), 
+                col = c("#e78ac3", "grey"))
+```
+
+
+## Where is the south?
+
+But coming back to our map, it needs a compass so your audience know where noth and east are.
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass() 
+  
+```
+
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass(size = 5, type = "8star") 
+  
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass(size = 5, type = "rose", lwd = 3, show.labels = 0) 
+```
+
+
+## The scale
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar()
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0, 50, 100, 150, 200), text.size = 2, position = c(0.06, 0))
+```
+
+Documentation for the [tm_layout() function](https://www.rdocumentation.org/packages/tmap/versions/2.2/topics/tm_layout)
+Documentation for the [tm_compass() function](https://www.rdocumentation.org/packages/tmap/versions/2.2/topics/tm_compass)
+Documentation for the [tm_scale_bar() function](https://www.rdocumentation.org/packages/tmap/versions/2.2/topics/tm_scale_bar)
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T) + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0, 50, 100, 150, 200), text.size = 1, position = c(0.06, 0),
+                 lwd = 5, color.dark = "darkgreen", color.light = "blue")
+```
+
+```{r}
+MyMap <- tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84") + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0, 50, 100, 150, 200), text.size = 1, position = c(0.06, 0),
+                 lwd = 3)
+
+```
+
+```{r}
+MyMap
+```
+
+## Mode: View
+
+```{r}
+tmap_mode("view")
+MyMap
+```
+
+
+```{r}
+tmap_mode("plot")
+```
+
+## Colors
+
+```{r}
+tm_shape(nc) + tm_polygons(col="BIR79", title = "Births 1979 - 84", palette = "Blues") + 
+    tm_layout(legend.position = c(0.01,0.65),
+              scale=0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0,50,100,150,200), text.size = 1, position = c(0.06,0),
+                 lwd = 3)
+
+```
+
+```{r}
+tm_shape(nc) + 
+    tm_polygons(col="BIR79", title = "Births 1979 - 84", palette = "Blues",  n = 4) + 
+    tm_layout(legend.position = c(0.01,0.65),
+              scale=0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0,50,100,150,200), text.size = 1, position = c(0.06,0),
+                 lwd = 3)
+```
+
+```{r}
+tm_shape(nc) + 
+    tm_polygons(col="BIR79", title = "Births 1979 - 84", palette = "Blues", 
+                style = "pretty") + 
+    tm_layout(legend.position = c(0.01,0.65),
+              scale=0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0,50,100,150,200), text.size = 1, position = c(0.06,0),
+                 lwd = 3)
+```
+
+```{r}
+library(RColorBrewer)
+display.brewer.all()
+```
+
+
+```{r}
+tm_shape(nc) + tm_polygons(col="BIR79", title = "Births 1979 - 84", palette = "YlGnBu") + 
+    tm_layout(legend.position = c(0.01,0.65),
+              scale=0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0,50,100,150,200),size = 1, position = c(0.06,0),
+                 lwd = 3)
+```
+
+```{r}
+tm_shape(nc) + tm_polygons(col="BIR79", title = "Births 1979 - 84", palette = "-YlGnBu") + 
+    tm_layout(legend.position = c(0.01,0.65),
+              scale=0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0,50,100,150,200), text.size = 1, position = c(0.06,0),
+                 lwd = 3)
+```
+
+
+```{r}
+summary(nc$BIR79)
+```
+
+
+```{r}
+nc %>% ggplot(aes(x=BIR79)) + geom_histogram()
+```
+
+
+
+```{r}
+Breaks <- c(0, 2000, 4000, 6000, 31000)
+Labels <- c("0 - 2000", "2000 - 4000", "4000 - 6000", ">6000")
+```
+
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84", palette = "YlGnBu",
+                           breaks = Breaks, labels = Labels) + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0, 50, 100, 150, 200), text.size = 1, position = c(0.06, 0),
+                 lwd = 3)
+```
+
+```{r}
+MyPalette <- c("#f2f0f7", "#cbc9e2", "#9e9ac8", "#6a51a3")
+```
+
+
+```{r}
+tm_shape(nc) + tm_polygons(col = "BIR79", title = "Births 1979 - 84", palette = MyPalette,
+                           breaks = Breaks, labels = Labels) + 
+    tm_layout(legend.position = c(0.01, 0.65),
+              scale = 0.65,
+              legend.frame = T,
+              bg.color = "lightblue") + 
+    tm_compass(size = 5, type = "rose", lwd = 3) + 
+    tm_scale_bar(breaks = c(0, 50, 100, 150, 200), text.size = 1, position = c(0.06, 0),
+                 lwd = 3)
+```
+
+<br/>
+<hr/>
+
+# Auxiliar map
+
+## Alternative A
+
+```{r}
+MontevideoMap <- tm_shape(Montevideo) + 
+  tm_polygons() +
+  tm_shape(Accidents) + tm_bubbles()
+
+UruguayMap <- tm_shape(Uruguay) + 
+  tm_polygons()
+```
+
+```{r}
+library(grid)
+```
+
+```{r}
+MontevideoMap
+print(UruguayMap, vp = viewport(0.17, 0.8, width = 0.25, height = 0.25))
+```
+
+```{r}
+MontevideoMap <- tm_shape(Montevideo) + 
+  tm_polygons(col = "deepskyblue1") 
+
+
+MontevideoNeigh <- Uruguay %>% filter(NOMBRE %in% c("SAN JOSE", "CANELONES", "MONTEVIDEO"))
+
+AuxMap <- tm_shape(MontevideoNeigh) + tm_polygons(col = "green")
+```
+
+```{r}
+MontevideoMap
+print(AuxMap, vp = viewport(0.17, 0.8, width = 0.2, height = 0.2))
+```
+
+
+Our map needs some context!
+
+```{r}
+MontevideoBox <- st_bbox(Montevideo) %>% st_as_sfc() #Why not st_as_sf?
+```
+
+```{r}
+tm_shape(MontevideoBox) + tm_polygons(col = "white", border.col = "blue", lwd = 4)
+#plot(st_geometry(MontevideoBox))
+```
+
+
+```{r}
+
+AuxMap <- tm_shape(MontevideoNeigh) + tm_polygons(col = "green") + 
+  tm_shape(MontevideoBox) + tm_polygons(border.col = "red", lwd = 2.5, alpha = 0.3)
+  
+
+MontevideoMap
+print(AuxMap, vp = viewport(0.17, 0.8, width = 0.2, height = 0.2))
+```
+
+## Alternative B
+
+[See this link](https://github.com/r-tmap/tmap/issues/541)
+
+
+<br/>
+<hr/>
+
+# Faceted maps
+
+```{r}
+tm_shape(Montevideo) + tm_polygons() +
+  tm_shape(Accidents) + tm_dots(alpha = 0.5) + tm_facets(by = "ANIO")
+```
+
+```{r}
+tm_shape(Montevideo) + tm_polygons() +
+  tm_shape(Accidents) + tm_dots(alpha = 0.5) + tm_facets(by = "ANIO", nrow = 1)
+```
+
+```{r}
+tm_shape(Montevideo) + tm_polygons() +
+  tm_shape(Accidents) + tm_dots(alpha = 0.5) + tm_facets(by = "ANIO", ncol = 1)
+```
+
+```{r}
+Accidents2006 <- Accidents %>% filter(ANIO == "2006")
+Accidents2010 <- Accidents %>% filter(ANIO == "2010")
+
+Complements <- tm_compass() + tm_scale_bar()
+
+Map2006 <- tm_shape(Accidents2006) + tm_dots() + Complements
+Map2010 <- tm_shape(Accidents2010) + tm_dots() + Complements
+```
+
+```{r}
+tmap_arrange(Map2006, Map2010)
+```
+
+
+# Export
+
+# Animated maps
+
+See [section 8.5 of the Gecomputation with R book](https://bookdown.org/robinlovelace/geocompr/adv-map.html#static-maps)
+
+# Recommended readings
+
+- tmap book: [Elegant and informative maps with tmap](https://r-tmap.github.io/tmap-book/)
+- Chapter 8 of [Geocomputation with R book](https://bookdown.org/robinlovelace/geocompr/)
+- [tmap: get started - vignettes](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html)
+

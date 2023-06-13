@@ -1,0 +1,397 @@
+---
+title: "Spatial Autocorrelation"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries and raw data
+
+```{r libraries used}
+library(tidyverse)
+library(magrittr)
+library(sf)
+library(tmap)
+
+library(spdep) # Spatial weights, Moran's I, and LISA
+```
+
+```{r}
+load("../03_MexicoCity_HTS/Mexico_HTS.RData")
+ls()
+```
+
+The following would be the alternative:
+
+```{r}
+# MexicoCity_HTS_Database <- read_delim("../03_MexicoCity_HTS/MexicoCity_HTS_Database.csv",
+#                                       delim = ";")
+# MexicoCity_Districts <- st_read("../03_MexicoCity_HTS/MexicoCity_Districts.shp")
+# 
+# 
+# MexicoCity_HTS <- MexicoCity_Districts %>% 
+#   left_join(MexicoCity_HTS_Database)
+
+```
+
+# Neighbours
+
+## With polygons
+
+from the *"spdep"* we will use the following functions:
+
+- **poly2nb()**: to get a neighbours list based contiguous boundaries
+- **nb2listw()**: to get the spatial weights
+
+```{r}
+Neigh_ <- poly2nb(MexicoCity_HTS) # arugment queen = TRUE
+WM_ <- nb2listw(Neigh_, style = "W")
+# see https://r-spatial.github.io/spdep/reference/nb2listw.html for the style argument
+```
+
+```{r}
+class(Neigh_)
+Neigh_
+```
+
+```{r}
+dim(MexicoCity_HTS)
+length(Neigh_)
+```
+
+```{r}
+Neigh_[1]
+Neigh_[5]
+```
+Important: Check this results with QGIS
+
+
+## With points
+
+from the *"spdep"* we will use the following functions:
+
+- **knearneigh()**: K nearest neighbours for spatial weights
+- **knn2nb()**: Converts output from knearneigh() to a neighbours list of class nb
+- **nb2listw()**: to get the spatial weights
+
+```{r}
+Centroids_MexicoCity_HTS <- st_centroid(MexicoCity_HTS) %>% st_geometry()
+```
+ The knearneigh() function returns an intermediate form converted to an nb object by knn2nb(); knearneigh() can also take a longlat= argument to handle geographical coordinates
+ 
+```{r}
+st_is_longlat(Centroids_MexicoCity_HTS)
+```
+ 
+```{r}
+KNN <- knearneigh(Centroids_MexicoCity_HTS,  k = 6) # longlat = NULL
+Neigh_Centroids <- knn2nb(KNN)
+WM_Centroids <- nb2listw(Neigh_Centroids, style = "W") 
+```
+
+```{r}
+class(Neigh_)
+class(Neigh_Centroids)
+
+class(Neigh_) == class(Neigh_Centroids)
+```
+
+```{r}
+class(WM_)
+class(WM_Centroids)
+
+class(WM_) == class(WM_Centroids)
+```
+
+```{r}
+Neigh_Centroids[1]
+Neigh_Centroids[5]
+```
+
+```{r}
+KNN
+```
+
+
+# Spatial Autocorrelation
+
+## Preliminary exploration
+
+We want to explore car-based trips. Should we analyze the total count? the share of total trips? or trips per inhabitants?
+
+```{r}
+summary(MexicoCity_HTS$Trips_Automovil)
+```
+
+```{r}
+tm_shape(MexicoCity_HTS) +
+  tm_fill("Trips_Automovil") +
+  tm_borders(alpha = 0.6)
+```
+
+```{r}
+MexicoCity_HTS %<>%
+  mutate(CarTrips_Proportion = Trips_Automovil/TotalTrips,
+         CarTrips_PerPopulation = Trips_Automovil/TotalPeople)
+```
+
+```{r}
+summary(MexicoCity_HTS$Trips_Automovil)
+summary(MexicoCity_HTS$CarTrips_Proportion)
+summary(MexicoCity_HTS$CarTrips_PerPopulation)
+```
+
+Why do we have an NA?
+
+```{r}
+summary(MexicoCity_HTS$TotalPeople)
+MexicoCity_HTS %>% filter(is.na(TotalPeople)) %>% select(Distrito)
+# View(MexicoCity_HTS %>% select(Distrito, TotalPeople))
+```
+
+```{r}
+MexicoCity_HTS %<>% replace_na(list(TotalPeople = 120)) # Any take on this?
+
+MexicoCity_HTS %<>%
+  mutate(CarTrips_Proportion = Trips_Automovil/TotalTrips,
+         CarTrips_PerPopulation = Trips_Automovil/TotalPeople)
+```
+
+```{r}
+summary(MexicoCity_HTS$Trips_Automovil)
+summary(MexicoCity_HTS$CarTrips_Proportion)
+summary(MexicoCity_HTS$CarTrips_PerPopulation)
+```
+
+```{r}
+tm_shape(MexicoCity_HTS) +
+  tm_fill("CarTrips_Proportion", style = "quantile") +
+  tm_borders(alpha = 0.6)
+```
+
+```{r}
+tm_shape(MexicoCity_HTS) +
+  tm_fill("CarTrips_PerPopulation", style = "quantile") +
+  tm_borders(alpha = 0.6)
+```
+
+
+### Ok, let's fix that map
+
+```{r}
+BB_Districts <- st_bbox(MexicoCity_HTS)
+BB_Districts[1] <- -99.8
+BB_Districts
+```
+
+```{r}
+MexicoCity_Fringe <- st_read("../03_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
+```
+
+```{r}
+st_crs(MexicoCity_HTS) == st_crs(MexicoCity_Fringe)
+```
+
+```{r}
+tm_shape(MexicoCity_HTS, bbox = BB_Districts) +
+  tm_fill("CarTrips_PerPopulation", style = "quantile", title = "Quantiles") +
+  tm_borders(alpha = 0.6) +
+  tm_shape(MexicoCity_Fringe) + 
+  tm_polygons(alpha = 0, border.col = "black", lwd = 1.4, lty = "solid") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) + 
+  tm_scale_bar(position = c(0.4,0.02)) +
+  tm_layout(title = "Car trips / inhabitant", legend.position = c(0.01,0.15), scale = 1)
+```
+
+## Moran's I
+
+We can use the two following functions from the *spdep* library:
+
+- **moran.test()**: Analytical method. From the spdep 
+- **moran.mc()**: Montecarlo based method
+
+```{r}
+moran.test(MexicoCity_HTS$Trips_Automovil, WM_)
+```
+
+```{r}
+moran.test(MexicoCity_HTS$CarTrips_Proportion, WM_)
+```
+
+```{r}
+moran.test(MexicoCity_HTS$CarTrips_Proportion, WM_)
+```
+
+
+```{r}
+moran.mc(MexicoCity_HTS$Trips_Automovil, WM_, nsim = 1000)
+moran.mc(MexicoCity_HTS$CarTrips_Proportion, WM_, nsim = 1000)
+moran.mc(MexicoCity_HTS$CarTrips_PerPopulation, WM_, nsim = 1000)
+```
+
+## Moran's I: the regression way
+
+```{r}
+Variable.lag <- lag.listw(WM_, MexicoCity_HTS$CarTrips_PerPopulation) # What is this?
+
+DataTemp <- data.frame(
+  Lagged = Variable.lag, 
+  Value = MexicoCity_HTS$CarTrips_PerPopulation)
+
+MeanValues = mean(DataTemp$Value)
+MeanLagged = mean(DataTemp$Lagged)
+
+Model_Y_Ylagged <- lm(Lagged ~ Value, data = DataTemp)
+
+DataTemp$Y_Est <- predict.lm(Model_Y_Ylagged, DataTemp)
+```
+
+```{r}
+summary(Model_Y_Ylagged)
+```
+
+```{r}
+coef(Model_Y_Ylagged)[2] # How do you interpret this result?
+```
+
+
+```{r}
+ggplot() +
+  geom_point(data = DataTemp, aes(x = Value, y = Lagged)) +
+  geom_vline(xintercept = MeanValues, linetype = "dashed") +
+  geom_hline(yintercept = MeanLagged, linetype = "dashed") +
+  geom_smooth(data = DataTemp, aes(x = Value, y = Y_Est, method = "lm"), 
+              color = "#f03b20") +
+  # scale_x_continuous(limits = c(0, 4)) +
+  # scale_y_continuous(limits = c(0, 2)) +
+  xlab("Variable") + ylab("Lagged Variable") +
+  theme_light()
+```
+
+
+## Geary index
+
+function **geary.test()** from the *spdep* library
+
+```{r}
+geary.test(MexicoCity_HTS$CarTrips_PerPopulation, WM_)
+```
+
+
+# LISA
+
+## Moran's I
+
+Most of the work is handled by the **localmoran()** function from the *spdep* library/
+
+```{r}
+MexicoCity_HTS$Variable <- MexicoCity_HTS$CarTrips_PerPopulation
+ZonesAnalysis <- MexicoCity_HTS %>% select(Variable)
+```
+
+```{r}
+Variable.lag <- lag.listw(WM_, ZonesAnalysis$Variable) 
+
+DataTemp <- data.frame(
+  Lagged = Variable.lag, 
+  Value = ZonesAnalysis$Variable)
+
+MeanValues = mean(DataTemp$Value)
+MeanLagged = mean(DataTemp$Lagged)
+
+Model_Y_Ylagged <- lm(Lagged ~ Value, data = DataTemp)
+
+DataTemp$Y_Est <- predict.lm(Model_Y_Ylagged, DataTemp)
+```
+
+
+```{r}
+LocalMoran_Temp <- localmoran(ZonesAnalysis$Variable, WM_)
+
+LocalMoran_Temp <- as.data.frame(LocalMoran_Temp)
+names(LocalMoran_Temp)[5] <- "PValue"
+
+ZonesAnalysis %<>% bind_cols(LocalMoran_Temp)
+
+ZonesAnalysis$Lagged <- lag.listw(WM_, ZonesAnalysis$Variable)
+ZonesAnalysis$Value <- ZonesAnalysis$Variable
+
+MeanValues = mean(ZonesAnalysis$Value)
+MeanLagged = mean(ZonesAnalysis$Lagged)
+MeanMoran = mean(ZonesAnalysis$Ii)
+
+ZonesAnalysis %<>%
+  mutate(
+    Values_Centered = Value - MeanValues,
+    Lagged_Centered = Lagged - MeanLagged,
+    Moran_Centered = Ii - MeanMoran)
+
+ZonesAnalysis %<>%
+  mutate(Significance = if_else(PValue <= 0.05, 1, 0)) %>% 
+  mutate(Cuadrants = 5) %>%
+  mutate(Cuadrants = if_else(Values_Centered > 0 & Lagged_Centered > 0, 1, Cuadrants)) %>% 
+  mutate(Cuadrants = if_else(Values_Centered > 0 & Lagged_Centered < 0, 2, Cuadrants)) %>%
+  mutate(Cuadrants = if_else(Values_Centered < 0 & Lagged_Centered < 0, 3, Cuadrants)) %>%
+  mutate(Cuadrants = if_else(Values_Centered < 0 & Lagged_Centered > 0, 4, Cuadrants)) %>% 
+  mutate(Cuadrants = if_else(Significance == 0, 5, Cuadrants))
+
+# 1: High-High - Spatial clusters
+# 2: High-Low - Outliers
+# 3: Low-low - Spatial clusters
+# 4: Low-High - Outliers
+# 5: Not significance
+# c("High-High", "High-Low", "Low-low", "Low-high", "Not significant")
+ZonesAnalysis$Cuadrants <- factor(as.character(ZonesAnalysis$Cuadrants), 
+                                  levels = c("1", "2", "3", "4", "5"),
+                                  ordered = TRUE)
+```
+
+```{r}
+ggplot() +
+  geom_point(data = ZonesAnalysis, aes(x = Value, y = Lagged, color = Cuadrants)) +
+  scale_color_manual(values = c("#1b9e77", "#7570b3", "#e7298a", "#d0d1e6"),
+                    labels = c("High-High", "Low-low", "Low-high", "Not significant")) + 
+  geom_vline(xintercept = MeanValues, linetype = "dashed") +
+  geom_hline(yintercept = MeanLagged, linetype = "dashed") +
+  geom_smooth(data = DataTemp, aes(x = Value, y = Y_Est, method = "lm"), 
+              color = "#f03b20") +
+  xlab("Variable") + ylab("Lagged Variable") +
+  theme_light()
+```
+
+
+```{r}
+Breaks <- c(0, 1.5, 2.5, 3.5, 4.5, 5.5)
+Labels <- c("High-high (clusters)", "High-low", 
+            "Low-low (clusters)", "Low-high", "Not significant")
+MyPalette <- c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#edf8fb")
+```
+
+```{r}
+Map_LISA <- tm_shape(ZonesAnalysis, bbox = BB_Districts) +
+  tm_fill("Cuadrants",
+           palette = MyPalette, breaks = Breaks, labels = Labels,
+          title = "LISA cluster map") +
+  tm_borders(alpha = 0.4) +
+  tm_shape(MexicoCity_Fringe) + 
+  tm_polygons(alpha = 0, border.col = "black", lwd = 1.4, lty = "solid") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) + 
+  tm_scale_bar(position = c(0.4,0.02)) +
+  tm_layout(title = "Car trips / inhabitant", legend.position = c(0.01,0.15), scale = 1)
+
+Map_LISA
+```
+
+```{r}
+# tmap_save(tm = Map_LISA, filename = "Maps_LISA.jpeg", 
+#           width = 2500, height = 2500)
+```
+
+
+

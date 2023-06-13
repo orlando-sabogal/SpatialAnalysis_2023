@@ -1,0 +1,382 @@
+---
+title: "Spatial Regression"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries and raw data
+
+```{r libraries used}
+library(tidyverse)
+library(magrittr)
+library(sf)
+library(tmap)
+
+library(spdep) # Spatial weights, Moran's I, and LISA
+library(spatialreg) # Spatial Regression
+```
+
+```{r}
+load("../03_MexicoCity_HTS/Mexico_HTS.RData")
+ls()
+```
+
+## Remove districts
+
+```{r}
+summary(MexicoCity_HTS$TotalPeople)
+MexicoCity_HTS %>% filter(is.na(TotalPeople)) %>% select(Distrito)
+```
+```{r}
+MexicoCity_HTS %<>% filter(Distrito != "034")
+```
+
+```{r}
+summary(MexicoCity_HTS$Total_Homes)
+```
+
+## Map preparation
+
+```{r}
+MexicoCity_Fringe <- st_read("../03_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
+```
+
+```{r}
+BB_Districts <- st_bbox(MexicoCity_HTS)
+BB_Districts[1] <- -99.8
+BB_Districts
+```
+
+
+# OLS
+
+## Weighted Matrix
+
+```{r}
+Neigh_ <- poly2nb(MexicoCity_HTS) 
+WM_ <- nb2listw(Neigh_, style = "W")
+```
+
+Let's keep the following piece of code in mind:
+
+```{r}
+WM2 <- as(WM_, "CsparseMatrix")
+trMC <- trW(WM2, type="MC")
+```
+
+
+## Specification?
+
+```{r}
+MexicoCity_HTS %<>%
+  mutate(CarTrips_PerPopulation = Trips_Automovil/TotalPeople,
+         Prop_Male = Total_Male/TotalPeople,
+         Prop_HomesWithCars = Homes_With_Cars/Total_Homes,
+         Prop_HomesWithBicycles = Homes_With_Bicycles/Total_Homes,
+         Prop_Education_Low = TotalEducation_Low/TotalPeople,
+         Prop_Education_Medium = TotalEducation_Medium/TotalPeople,
+         Prop_Education_High = TotalEducation_High/TotalPeople)
+```
+
+
+```{r}
+ModelEquation <- "CarTrips_PerPopulation ~ 
+                          Prop_Male + 
+                          Prop_HomesWithCars + 
+                          Prop_HomesWithBicycles +
+                          # Prop_Education_Low + 
+                          Age"
+```
+
+```{r}
+Model_OLS <- lm(ModelEquation, data = MexicoCity_HTS) 
+```
+
+## Model Fitting
+
+```{r}
+summary(Model_OLS)
+```
+
+## VIF
+
+```{r}
+regclass::VIF(Model_OLS)
+```
+
+
+## Residuals - Statistical tests
+
+### Correlation
+
+H0 (null hypothesis): There is no correlation among the residuals.
+HA (alternative hypothesis): The residuals are autocorrelated.
+
+p-value is less than 0.05, reject the null hypothesis and conclude that the residuals in this regression model are autocorrelated
+
+```{r}
+car::durbinWatsonTest(Model_OLS)
+```
+
+### Normality
+
+The null hypothesis is that the data are normally distributed
+If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that the data are not normally distributed.
+
+```{r}
+tseries::jarque.bera.test(residuals(Model_OLS))
+```
+
+If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that the residuals do not follow a normal distribution.
+
+```{r}
+ks.test(residuals(Model_OLS), "pnorm")
+```
+
+
+### Heteroscedasticity
+
+If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that there is evidence of heteroscedasticity in the residuals.
+
+```{r}
+lmtest::bptest(Model_OLS)
+```
+
+
+# OLS - Spatial autocorrelation of the residuals
+
+```{r}
+lm.morantest(Model_OLS, WM_)
+```
+
+```{r}
+MexicoCity_HTS %<>% mutate(Residuals_OLS = residuals(Model_OLS)) 
+```
+
+```{r}
+tm_shape(MexicoCity_HTS, bbox = BB_Districts) +
+  tm_fill("Residuals_OLS", style = "quantile", title = "Quantiles") +
+  tm_borders(alpha = 0.6) +
+  tm_shape(MexicoCity_Fringe) + 
+  tm_polygons(alpha = 0, border.col = "black", lwd = 1.4, lty = "solid") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) + 
+  tm_scale_bar(position = c(0.4,0.02)) +
+  tm_layout(title = "Residuals - OLS", legend.position = c(0.01,0.15), scale = 1)
+```
+
+```{r}
+moran.test(MexicoCity_HTS$Residuals_OLS, WM_)
+moran.mc(MexicoCity_HTS$Residuals_OLS, WM_, nsim = 10000)
+```
+
+```{r}
+MexicoCity_HTS$Variable <- MexicoCity_HTS$Residuals_OLS
+ZonesAnalysis <- MexicoCity_HTS %>% select(Variable)
+
+
+LocalMoran_Temp <- localmoran(ZonesAnalysis$Variable, WM_)
+
+LocalMoran_Temp <- as.data.frame(LocalMoran_Temp)
+names(LocalMoran_Temp)[5] <- "PValue"
+
+ZonesAnalysis %<>% bind_cols(LocalMoran_Temp)
+
+ZonesAnalysis$Lagged <- lag.listw(WM_, ZonesAnalysis$Variable)
+ZonesAnalysis$Value <- ZonesAnalysis$Variable
+
+MeanValues = mean(ZonesAnalysis$Value)
+MeanLagged = mean(ZonesAnalysis$Lagged)
+MeanMoran = mean(ZonesAnalysis$Ii)
+
+ZonesAnalysis %<>%
+  mutate(
+    Values_Centered = Value - MeanValues,
+    Lagged_Centered = Lagged - MeanLagged,
+    Moran_Centered = Ii - MeanMoran)
+
+ZonesAnalysis %<>%
+  mutate(Significance = if_else(PValue <= 0.05, 1, 0)) %>% 
+  mutate(Cuadrants = 5) %>%
+  mutate(Cuadrants = if_else(Values_Centered > 0 & Lagged_Centered > 0, 1, Cuadrants)) %>% 
+  mutate(Cuadrants = if_else(Values_Centered > 0 & Lagged_Centered < 0, 2, Cuadrants)) %>%
+  mutate(Cuadrants = if_else(Values_Centered < 0 & Lagged_Centered < 0, 3, Cuadrants)) %>%
+  mutate(Cuadrants = if_else(Values_Centered < 0 & Lagged_Centered > 0, 4, Cuadrants)) %>% 
+  mutate(Cuadrants = if_else(Significance == 0, 5, Cuadrants))
+
+# 1: High-High - Spatial clusters
+# 2: High-Low - Outliers
+# 3: Low-low - Spatial clusters
+# 4: Low-High - Outliers
+# 5: Not significance
+# c("High-High", "High-Low", "Low-low", "Low-high", "Not significant")
+ZonesAnalysis$Cuadrants <- factor(as.character(ZonesAnalysis$Cuadrants), 
+                                  levels = c("1", "2", "3", "4", "5"),
+                                  ordered = TRUE)
+```
+
+
+```{r}
+Breaks <- c(0, 1.5, 2.5, 3.5, 4.5, 5.5)
+Labels <- c("High-high (clusters)", "High-low", 
+            "Low-low (clusters)", "Low-high", "Not significant")
+MyPalette <- c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#edf8fb")
+```
+
+```{r}
+Map_LISA_Residuals <- tm_shape(ZonesAnalysis, bbox = BB_Districts) +
+  tm_fill("Cuadrants",
+           palette = MyPalette, breaks = Breaks, labels = Labels,
+          title = "LISA cluster map") +
+  tm_borders(alpha = 0.4) +
+  tm_shape(MexicoCity_Fringe) + 
+  tm_polygons(alpha = 0, border.col = "black", lwd = 1.4, lty = "solid") +
+  tm_compass(size = 2, type = "arrow", position = c(0.85,0.87)) + 
+  tm_scale_bar(position = c(0.4,0.02)) +
+  tm_layout(title = "Residuals - OLS", legend.position = c(0.01,0.15), scale = 1)
+
+Map_LISA_Residuals
+```
+
+# OLS - What is next?
+
+## Anselin test
+
+```{r}
+lm.LMtests(Model_OLS, WM_, 
+           test = c("LMerr", "LMlag", "RLMerr", "RLMlag", "SARMA"))
+```
+## Likelihood ratio tests
+
+To do this we neet to fit the other models
+
+```{r}
+
+# Spatial Durbin Model SDM:
+Spatial_SDM <- lagsarlm(ModelEquation, data = MexicoCity_HTS, WM_, type = "mixed") 
+
+# Spatial Durbin Error Model SDEM:
+Spatial_SDEM <- errorsarlm(ModelEquation, data = MexicoCity_HTS, WM_, etype="emixed") 
+
+# Spatially Lagged X:
+Spatial_Lagged_X <- lmSLX(ModelEquation, data = MexicoCity_HTS, WM_) 
+
+# Spatially Lagged Y:
+Spatial_Lagged_Y <- lagsarlm(ModelEquation, data = MexicoCity_HTS, WM_) 
+
+# Spatial Error Model SEM:
+Spatial_SEM <- errorsarlm(ModelEquation, data = MexicoCity_HTS, WM_) 
+```
+
+
+# SAR (SLY)
+
+```{r}
+Spatial_Lagged_Y <- lagsarlm(ModelEquation, data = MexicoCity_HTS, WM_) 
+```
+
+```{r}
+# summary(impacts(Spatial_Lagged_Y, listw = WM_, R = 500), zstats = TRUE)
+summary(impacts(Spatial_Lagged_Y, tr = trMC, R = 300), zstats = TRUE)
+```
+```{r}
+MexicoCity_HTS$Residuals_SLY <- residuals(Spatial_Lagged_Y)
+moran.mc(MexicoCity_HTS$Residuals_SLY, WM_, 1000)
+```
+
+# SEM
+
+```{r}
+Spatial_SEM <- errorsarlm(ModelEquation, data = MexicoCity_HTS, WM_)
+```
+
+```{r}
+summary(Spatial_SEM)
+```
+
+```{r}
+MexicoCity_HTS$Residuals_SEM <- residuals(Spatial_SEM)
+moran.mc(MexicoCity_HTS$Residuals_SEM, WM_, 1000)
+```
+
+
+
+# SLX
+
+```{r}
+Spatial_Lagged_X <- lmSLX(ModelEquation, data = MexicoCity_HTS, WM_) 
+```
+
+
+```{r}
+summary(Spatial_Lagged_X)
+```
+
+```{r}
+#summary(impacts(Spatial_Lagged_X, listw = WM, R=500), zstats = TRUE) 
+summary(impacts(Spatial_Lagged_X, tr = trMC, R = 300), zstats = TRUE)
+```
+
+```{r}
+MexicoCity_HTS$Residuals_SLX <- residuals(Spatial_Lagged_X)
+moran.mc(MexicoCity_HTS$Residuals_SLX, WM_, 1000)
+```
+
+# SDM
+
+```{r}
+Spatial_SDM <- lagsarlm(ModelEquation, data = MexicoCity_HTS, WM_, type = "mixed") 
+```
+
+```{r}
+summary(Spatial_SDM)
+```
+
+```{r}
+# summary(impacts(Spatial_SDM, listw = WM, R = 500), zstats = TRUE)
+summary(impacts(Spatial_SDM, tr = trMC, R = 300), zstats = TRUE)
+```
+```{r}
+MexicoCity_HTS$SDM <- residuals(Spatial_SDM)
+moran.mc(MexicoCity_HTS$SDM, WM_, 1000)
+```
+
+
+# SDEM
+
+```{r}
+Spatial_SDEM <- errorsarlm(ModelEquation, data = MexicoCity_HTS, WM_, etype="emixed")
+```
+
+```{r}
+summary(Spatial_SDEM)
+```
+
+```{r}
+summary(Spatial_SDEM)
+```
+
+```{r}
+MexicoCity_HTS$SDEM <- residuals(Spatial_SDEM)
+moran.mc(MexicoCity_HTS$SDEM, WM_, 1000)
+```
+
+# Likelihood ratio test (Lagrange Multipliers)
+
+```{r}
+LR.Sarlm(Spatial_SDM, Spatial_Lagged_X)
+LR.Sarlm(Spatial_SDM, Spatial_Lagged_Y)
+LR.Sarlm(Spatial_SDM, Spatial_SEM)
+```
+
+```{r}
+LR.Sarlm(Spatial_SDEM, Spatial_SEM)
+LR.Sarlm(Spatial_SDEM, Spatial_Lagged_X)
+```
+

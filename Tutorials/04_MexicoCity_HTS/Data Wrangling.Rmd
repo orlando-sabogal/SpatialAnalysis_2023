@@ -1,0 +1,443 @@
+---
+title: "Data Wrangling- HTS Mexico City"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Libraries and raw data
+
+```{r libraries used}
+library(tidyverse)
+library(magrittr)
+library(sf)
+```
+
+```{r Districts shapefiles}
+Zones <- st_read(
+  "Mexico OD Survey/DistritosEODHogaresZMVM2017/DistritosEODHogaresZMVM2017.shp")
+```
+
+```{r Trips Database}
+Trips <- read_delim(
+  "Mexico OD Survey/eod_2017_csv/tviaje_eod2017/conjunto_de_datos/tviaje.csv",
+  delim = ",")
+#p5_11: HomeTrip or not
+#p5_13: Trip Purpose
+#p5_9_1: Time the trip started
+```
+
+```{r TripsStagesDatabase}
+TripsStages <- read_delim(
+  "Mexico OD Survey/eod_2017_csv/ttransporte_eod2017/conjunto_de_datos/ttransporte.csv", 
+  delim = ",")
+
+# id_via is the unique identifier. It is consistent with Trips
+# p5_14 is the transport mode
+# p5_16 is the order of the stages. 
+
+```
+
+```{r People Database}
+People <- read_delim(
+  "Mexico OD Survey/eod_2017_csv/tsdem_eod2017/conjunto_de_datos/tsdem.csv",
+  delim = ",")
+
+#id_soc is the unique identifier por people
+```
+
+```{r Home Database}
+Home <- read_delim(
+  "Mexico OD Survey/eod_2017_csv/thogar_eod2017/conjunto_de_datos/thogar.csv",
+                   delim = ",")
+```
+
+
+# Our Goal
+
+```{r}
+plot(st_geometry(Zones))
+```
+
+```{r}
+Zones %>% glimpse()
+```
+
+
+# variables and keys
+
+```{r}
+dim(Trips)
+dim(TripsStages)
+```
+
+```{r}
+names(Trips)
+names(TripsStages)
+```
+
+
+Keep in mind that for the *"Trips"* object:
+
+- **p5_11**: HomeTrip or not
+- **p5_13**: Trip Purpose
+- **p5_9_1**: Time the trip started
+- **dto_origen**: Origin of the trip
+- **dto_dest**: Destination of the trip
+
+And keep in mind that for the *"Trips"Stages"* object:
+- **id_via** is the unique identifier. It is consistent with the *"Trips"*
+- **p5_14** is the transport mode
+- **p5_16** is the order of the stages. 
+
+```{r}
+dim(People)
+dim(Home)
+```
+
+```{r}
+names(People)
+names(Home)
+```
+
+Keep in mind that **id_soc** is the unique identifier for every individual
+
+# Trips
+
+## Mode
+
+```{r}
+Trips %>% group_by(p5_13) %>% summarise(TotalTrips = n()) %>% arrange(desc(TotalTrips))
+```
+
+```{r}
+class(Trips$p5_13)
+```
+
+
+```{r}
+PurposeNames <- data.frame(p5_13 = c(1:10,99),
+                           Purpose = c("Hogar","Trabajar", "Estudiar", 
+                                       "Otro", "Recreacion","Otro", "Otro",
+                                       "Salud", rep("Otro",3)))
+
+Trips %<>% 
+  mutate(p5_13 = as.numeric(p5_13)) %>% 
+  left_join(PurposeNames) %>% 
+  select(id_via, Purpose, dto_origen, dto_dest)
+
+```
+
+```{r}
+Trips
+```
+
+
+## Travel time
+
+```{r}
+TripsStages %>% group_by(p5_14) %>% 
+  summarise(TotalPerModel = n()) %>% 
+  arrange(desc(TotalPerModel))
+```
+
+```{r}
+class(TripsStages$p5_14)
+```
+
+```{r}
+ModesNames <- data.frame(
+  p5_14 = seq(1:20),
+  Modes = c("Automovil", "Colectivo_Micro", "App",
+            "Taxi", "Metro", "Autobus_RTP_M1",
+             "Bicicleta",  "Autobus", "Moto",  "Trolebus", 
+             "Metrobus_Mexibus", "TrenLigero","TrenSuburbano", 
+             "Caminar", "Mexicable", "Bicitaxi",  "Mototaxi", 
+              "TransporteEscolar", "TransporteDePersonal", "Otro"))
+
+TripsStages %<>%
+  mutate(p5_14 = as.numeric(p5_14)) %>% 
+  left_join(ModesNames) %>% 
+  select(id_via, Modes,
+         TT_Hours = p5_16_1_1, TT_Minutes = p5_16_1_2) %>% 
+  mutate(TT_Hours = as.numeric(TT_Hours),
+         TT_Minutes = as.numeric(TT_Minutes)) %>% 
+  filter(!TT_Hours == 99) %>% filter(!TT_Minutes == 99) %>%
+  filter(TT_Hours < 4) %>%  # Remove trips lasting more than 4 hours. 
+  mutate(TravelTime = TT_Hours*60 + TT_Minutes)
+```
+## Merge trips
+
+```{r}
+Trips_Final <- TripsStages %>% left_join(Trips)
+```
+
+```{r}
+Trips_Final
+```
+
+Why is this not accurate?
+
+# Data to zones
+
+## Trips to zones
+
+### Total trips
+
+```{r}
+Agg_TotalTrips <- Trips_Final %>% group_by(dto_origen) %>% 
+  summarise(TotalTrips = n())
+```
+
+### Trips Per Mode
+
+```{r}
+Agg_TripsPerMode <- Trips_Final %>% 
+  group_by(Modes, dto_origen) %>% 
+  summarise(
+    TripsPerMode = n(),
+    TravelTime = mean(TravelTime)
+  )
+```
+
+How do we fix this?
+
+```{r}
+Agg_TripsPerMode %>% 
+  pivot_wider(id_cols = dto_origen, 
+              names_from = Modes, names_prefix = "Trips_", 
+              values_from = TripsPerMode, values_fill = 0)
+```
+
+```{r}
+Agg_Trips_Trips <- Agg_TripsPerMode %>% 
+  pivot_wider(id_cols = dto_origen, 
+              names_from = Modes, names_prefix = "Trips_", 
+              values_from = TripsPerMode, values_fill = 0)
+
+Agg_Trips_TravelTime <- Agg_TripsPerMode %>% 
+  pivot_wider(id_cols = dto_origen, 
+              names_from = Modes, names_prefix = "TravelTime_",
+              values_from = TravelTime, values_fill = 0)
+```
+
+
+## People to zones
+
+### Age
+
+```{r}
+summary(People$edad)
+```
+
+```{r}
+dim(People)
+People %>% filter(edad == "00") %>% dim()
+People %>% filter(edad == "97") %>% dim()
+People %>% filter(edad == "99") %>% dim()
+
+```
+```{r}
+People %<>% filter(!edad %in% c("00", "97", "99")) 
+dim(People)
+```
+
+```{r}
+People$edad = as.numeric(People$edad)
+```
+
+
+```{r}
+People_TotalPeople_Age <- People %>% group_by(distrito) %>% 
+  summarise(TotalPeople = n(),
+            Age = mean(edad, na.rm = TRUE))
+
+People_TotalPeople_Age
+```
+
+### Education
+
+```{r}
+People %>% group_by(niv) %>% summarise(Total = n())
+```
+
+
+```{r}
+People %<>% 
+  mutate(EducationLevel = recode(niv,
+                                 "00" = "Low",
+                                 "01" = "Low",
+                                 "02" = "Low",
+                                 "03" = "Low",
+                                 "99" = "Low", # Is this correct?
+                                 "04" = "Medium",
+                                 "05" = "Medium",
+                                 "06" = "Medium",
+                                 "07" = "Medium",
+                                 "08" = "High",
+                                 "09" = "High")) 
+```
+
+
+```{r}
+People_EducationLevel <- People %>% group_by(distrito, EducationLevel) %>% 
+  summarise(Total = n()) %>% drop_na() %>% 
+  pivot_wider(id_cols = distrito, 
+              names_from = EducationLevel, names_prefix = "TotalEducation_",
+              values_from = Total, values_fill = 0)
+
+People_EducationLevel
+```
+
+
+### Gender
+
+sexo
+```{r}
+summary(People$sexo)
+summary(as.factor(People$sexo))
+
+People %<>% mutate(Gender = if_else(sexo == 1, "Male", "Female"))
+```
+```{r}
+People_Gender <- People %>% group_by(distrito, Gender) %>% 
+  summarise(Total = n()) %>% 
+  pivot_wider(id_cols = distrito, 
+              names_from = Gender, names_prefix = "Total_",
+              values_from = Total, values_fill = 0)
+
+People_Gender
+```
+
+
+## Homes to zones
+
+p2_1_1: ¿Cuántos autos o camionetas tienen para transportarse cotidianamente?
+p2_1_2: ¿Cuántas motocicletas o motonetas tienen para transportarse cotidianamente?
+p2_1_3: ¿Cuántas bicicletas tienen para transportarse cotidianamente?
+
+
+```{r}
+Home %<>%
+  select(distrito, 
+         Cars = p2_1_1,
+         Motos = p2_1_2,
+         Bicycles = p2_1_3) %>% 
+  mutate(
+    Has_Car = if_else(Cars > 0, 1, 0),
+    Has_Motos = if_else(Motos > 0, 1, 0),
+    Has_Bicycles = if_else(Bicycles > 0, 1, 0))
+
+Home
+```
+
+
+```{r}
+Homes_TotalHomes <- Home %>% 
+  group_by(distrito) %>% 
+  summarise(Total_Homes = n())
+
+Homes_CarOwnership <- Home %>% 
+  filter(Has_Car == 1) %>% 
+  group_by(distrito) %>% 
+  summarise(Homes_With_Cars = n())
+
+Homes_MotorbikeOwnership <- Home %>% 
+  filter(Has_Motos == 1) %>% 
+  group_by(distrito) %>% 
+  summarise(Homes_With_Motorbikes = n())
+
+Homes_BicycleOwnership <- Home %>%
+  filter(Has_Bicycles == 1) %>% 
+  group_by(distrito) %>% 
+  summarise(Homes_With_Bicycles = n())
+
+Homes_Mean_Veahicles <- Home %>% 
+  group_by(distrito) %>% 
+  summarise(
+    Cars_mean = mean(Cars),
+    Motorbikes_mean = mean(Bicycles),
+    Bicycles_mean = mean(Bicycles)
+  )
+```
+
+
+# Merge
+
+```{r}
+Data_Agg <- Agg_TotalTrips %>% 
+  left_join(Agg_Trips_Trips) %>% 
+  left_join(Agg_Trips_TravelTime) %>% 
+  left_join(People_TotalPeople_Age, by = c("dto_origen" = "distrito")) %>% 
+  left_join(People_EducationLevel, by = c("dto_origen" = "distrito")) %>% 
+  left_join(People_Gender, by = c("dto_origen" = "distrito")) %>% 
+  left_join(Homes_TotalHomes, by = c("dto_origen" = "distrito")) %>% 
+  left_join(Homes_CarOwnership, by = c("dto_origen" = "distrito")) %>% 
+  left_join(Homes_MotorbikeOwnership, by = c("dto_origen" = "distrito")) %>% 
+  left_join(Homes_BicycleOwnership, by = c("dto_origen" = "distrito")) %>% 
+  left_join(Homes_Mean_Veahicles, by = c("dto_origen" = "distrito"))
+```
+
+Check the districts *888* and *999*
+
+```{r}
+MexicoCity_HTS <- Zones %>% 
+  left_join(Data_Agg, by = c("Distrito" = "dto_origen"))
+```
+
+```{r}
+dim(MexicoCity_HTS)
+names(MexicoCity_HTS)
+```
+
+# CRS
+
+```{r}
+st_crs(MexicoCity_HTS)
+```
+
+[EPSG:32614](https://epsg.io/32614)
+[EPSG:4326](https://epsg.io/4326)
+
+```{r}
+MexicoCity_HTS <- st_transform(MexicoCity_HTS, 4326)
+```
+
+
+# Print
+
+```{r}
+ls()
+```
+```{r}
+rm(
+  Agg_TotalTrips, Agg_Trips_TravelTime, Agg_Trips_Trips,         
+  Agg_TripsPerMode, Data, Data_Agg, Home, Homes_BicycleOwnership, Homes_CarOwnership,      
+  Homes_Mean_Veahicles, Homes_MotorbikeOwnership, Homes_TotalHomes, ModesNames,              People, People_EducationLevel, People_Gender, People_TotalPeople_Age,  
+  PurposeNames,Trips, Trips_Final, TripsStages, Zones )
+```
+
+
+```{r}
+ls()
+```
+
+```{r}
+save.image(file = "Mexico_HTS.RData")
+
+st_write(MexicoCity_HTS, "MexicoCity_HTS.shp")
+
+MexicoCity_HTS_Database <- MexicoCity_HTS %>% st_set_geometry(NULL)
+MexicoCity_Districts <- MexicoCity_HTS %>% select(Distrito)
+
+
+write_delim(MexicoCity_HTS_Database, "MexicoCity_HTS_Database.csv", delim = ";")
+st_write(MexicoCity_Districts, "MexicoCity_Districts.shp")
+```
+
