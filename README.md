@@ -19,6 +19,34 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 
 <h2 style="font-family: 'Montserrat', sans-serif; font-weight: bold;">Presentations:</h2>
 
+<ul>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Introductory Session</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_A.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial Autocorrelation - Part A</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_B.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial Autocorrelation - Part B</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/02_LISA.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>LISA</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/03_LinearRegression.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Linear Regression</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/04_SpatialRegression.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial Regression</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/05_GWR.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>GWR</strong></a>
+  </li>
+  <li>
+    <a href="https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/06_SpatialPaneModels.pdf" style="font-family: 'Optima', sans-serif; color: #0000ff; text-decoration: none;" onmouseover="this.style.fontSize='110%'; this.style.color='#00008b';" onmouseout="this.style.fontSize='100%'; this.style.color='#0000ff';"><strong>Spatial Panel Models</strong></a>
+  </li>
+</ul>
+
+
 - [Introductory Session](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf)
 - [Spatial Autocorrelation - Part A](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_A.pdf)
 - [Spatial Autocorrelation - Part B](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_B.pdf)
