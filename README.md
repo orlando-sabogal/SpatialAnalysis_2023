@@ -2,18 +2,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Optima&display=swap');
 </style>
 
-<p style="font-family: 'Optima', sans-serif;">This text uses the Optima font.</p>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+</style>
 
+<h1 style="text-align: center; font-family: 'Montserrat', sans-serif; font-weight: bold;">Spatial Analysis</h1>
 
-# SpatialAnalysis_2023
-
-**Introduction:**
-
+<h2 style="font-family: 'Montserrat', sans-serif; font-weight: bold;">Introduction:</h2>
+<p style="font-family: 'Optima', sans-serif;">
 Throughout this course, we will delve into a diverse array of spatial analysis techniques, equipping you with the theoretical foundation and practical skills necessary to navigate spatial data challenges. Our journey will encompass essential topics, including geo-spatial operations, spatial autocorrelation, Moran's I, Local Indicators of Spatial Association (LISA), spatial regression, and Geographically Weighted Regression (GWR).
+</p>
 
+<p style="font-family: 'Optima', sans-serif;">
 By immersing yourself in this course, you will cultivate a deep understanding of the underlying principles that drive these spatial analysis methodologies. Furthermore, you will gain proficiency in implementing these techniques using R, enabling you to effectively manipulate, analyze, and interpret spatial datasets. Through hands-on exercises, project work, and code examples, you will hone your practical abilities and develop the confidence to apply spatial analysis in diverse domains.
+</p>
 
-**Presentations:**
+<h2 style="font-family: 'Montserrat', sans-serif; font-weight: bold;">Presentations:</h2>
 
 - [Introductory Session](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/00_Introduction.pdf)
 - [Spatial Autocorrelation - Part A](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/01_SpatialAutocorrelation_Part_A.pdf)
@@ -24,8 +28,7 @@ By immersing yourself in this course, you will cultivate a deep understanding of
 - [GWR](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/05_GWR.pdf)
 - [Spatial Panel Models](https://github.com/orlando-sabogal/SpatialAnalysis_2023/blob/gh-pages/Presentations/06_SpatialPaneModels.pdf)
 
-
-**Tutorials:**
+<h2 style="font-family: 'Montserrat', sans-serif; font-weight: bold;">Tutorials:</h2>
 
 - [Spatial analysis with R](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/02_R_Spatial/SpatialAnalysWithR.nb.html)
 - [Map Making - tmap](https://orlando-sabogal.github.io/SpatialAnalysis_2023/Tutorials/03_MapMaking/Tutorial_tmaps.nb.html)
