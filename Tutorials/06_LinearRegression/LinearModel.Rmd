@@ -1,0 +1,631 @@
+---
+title: "Tutorial - linear regression"
+author: "Orlando Sabogal-Cardona"
+date: "Summer 2023"
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    number_sections: true
+---
+
+# Library
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+
+# A simple example
+
+## Overview of the data
+
+```{r}
+data("USArrests")
+```
+
+```{r}
+names(USArrests)
+```
+
+```{r}
+glimpse(USArrests)
+```
+
+
+## Fit the model
+
+Varialble ~ X1 + X2 + X2 
+
+```{r}
+Equation <- "Murder ~ Assault + UrbanPop + Rape"
+
+Model <- lm(Equation, 
+            data = USArrests)
+```
+
+## General results
+
+```{r}
+summary(Model)
+```
+
+```{r}
+# Murder_ESTIMATED = 3.276639 + 
+        # 0.039777*Assault + -0.054694*UrbanPop + Rap +  0.061399residual
+```
+
+
+We get from the main output:
+
+- An overview of the residuals
+- Parameters: estimates, standard errores, t values, p values, and stars,
+- Residual standard errors
+- Degrees of freedom
+- F-statistics:  Used to assess the overall significance of the regression model by testing the null hypothesis that all the regression coefficients (except the intercept) are equal to zero. The F-test provides a measure of whether the linear relationship between the independent variables and the dependent variable is statistically significant.
+
+
+```{r}
+jtools::summ(Model)
+```
+
+```{r}
+TableResults <- broom::tidy(Model)
+TableResults
+```
+
+
+## Zoom in the parameters:
+
+```{r}
+coef(Model)
+```
+
+```{r}
+confint(Model)
+```
+
+## Diagnostic
+
+### The plot() function
+
+```{r}
+plot(Model)
+```
+
+How to interpret these plots?
+
+- **Residuals vs Fitted values:** Check for non-linear patterns. If there are not non-linear relationships in the model we should see residuals equally spread. 
+- **Normal Q-Q (quantile-quantile) plot:** If the residuals are normally distributed. They should follow a straight line. 
+- **Root of standardized residuals vs Fitted values (scale-location or spread location plot):** Checks for homoscedasticity,  if residuals are spread equally along the ranges of predictors. The vertical axis typically represents the square root of the absolute standardized residuals or the standardized residuals. The square root transformation is applied to stabilize the variance and ensure that negative residuals have meaningful values. Alternatively, the standardized residuals themselves can be used
+- **Standardized residuals vs Leverage:** To check for outliers. 
+
+
+## Slow down: plots with the residuals
+
+```{r}
+Y_Estimated <- predict(Model)
+Residuals <- residuals(Model)
+
+Diagnostic <- data.frame(Y_Estimated, Residuals)
+
+Diagnostic
+```
+
+
+```{r}
+ggplot(data = Diagnostic) +
+  geom_point(aes(x = Y_Estimated, y = Residuals)) +
+  ggtitle("Spread of the residuals") +
+  xlab("Estimated variable") + ylab("residuals") +
+  theme_light()
+```
+
+
+```{r}
+ggplot(data = Diagnostic) +
+  geom_histogram(aes(x = Residuals), binwidth = 0.7) +
+  theme_light()
+```
+
+
+## QQ Plots
+
+```{r}
+Diagnostic %<>% arrange(Residuals) 
+Diagnostic
+```
+
+```{r}
+Observations <- dim(USArrests)[1]
+Probabilities <- seq(0.01, 0.99, 0.02)
+Probabilities <- (1:Observations - 0.5)/Observations
+
+Diagnostic %<>% mutate(Theoretical_Quantiles = qnorm(Probabilities))
+Diagnostic
+```
+
+
+```{r}
+ggplot(data = Diagnostic) +
+  geom_point(aes(x = Theoretical_Quantiles, y = Residuals)) +
+  ggtitle("QQ Plot") +
+  xlab("Theoretical Quantiles") + ylab("residuals") +
+  theme_light()
+```
+
+
+
+```{r}
+Model$df.residual
+estimated_sd <- sqrt(sum(Diagnostic$Residuals^2)/Model$df.residual)
+
+Diagnostic %<>% mutate(Stand_Residuals = Residuals/estimated_sd) 
+Diagnostic
+```
+
+
+```{r}
+ggplot(data = Diagnostic) +
+  geom_point(aes(x = Theoretical_Quantiles, y = Stand_Residuals)) + 
+  geom_line(aes(x = Theoretical_Quantiles, y = Theoretical_Quantiles)) +
+  ggtitle("QQ Plot") +
+  xlab("Theoretical Quantiles") + ylab("Standardized residuals") +
+  theme_light()
+```
+
+## Scale-location plot 
+
+
+```{r}
+Diagnostic %<>%
+  mutate(sqrt_abs_std_resid = sqrt(abs(Stand_Residuals)) )
+
+Diagnostic
+```
+
+
+```{r}
+ggplot(Diagnostic, aes(x = Y_Estimated, y = sqrt_abs_std_resid)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Predicted Values", y = "Scale-Location") +
+  ggtitle("Scale-Location Plot") +
+  theme_minimal()
+```
+
+
+
+## Leverage
+
+The leverage plot, also known as the leverage-residuals plot or the Cook's distance plot, is a diagnostic plot used in linear regression analysis. It helps identify influential observations that have a significant impact on the regression model's results.
+
+
+Leverage refers to the potential of an observation to have a disproportionate effect on the estimated regression coefficients. Observations with high leverage can have a substantial impact on the regression line, either by exerting a pulling effect or by being outliers.
+
+In the leverage plot, each point represents an observation from the dataset. The vertical axis shows the standardized residuals, which indicate how far each observation's actual value deviates from its predicted value, taking into account the variability of the residuals. The horizontal axis represents the leverage values of the observations, which measure the potential influence of each observation on the estimated regression coefficients.
+
+Leverage values are calculated using the "*Hat*" matrix, which is a matrix that maps the observed values to the predicted values. High leverage values suggest that an observation has a greater ability to affect the estimated regression coefficients. Observations with high leverage are located towards the ends of the horizontal axis.
+
+Influential Observations: Observations with high leverage and large residuals can be considered influential observations. They have the potential to significantly affect the regression model's parameters and can distort the results if they are outliers or if their predictors have extreme values.
+
+Cook's Distance: In addition to the leverage plot, Cook's distance is often shown on the same graph or as a separate plot. Cook's distance measures the influence of each observation on the entire regression model. Large values of Cook's distance suggest influential observations that significantly affect the regression model's results.
+
+By examining the leverage plot and Cook's distance, you can identify influential observations that may require further investigation. These observations may have a substantial impact on the regression analysis and could potentially affect the model's conclusions.
+
+It's important to note that the interpretation of influential observations should be done cautiously, considering the context and objectives of the analysis. Influential observations may warrant additional scrutiny, but they should not be automatically removed without careful consideration and justification.
+
+## Multiolinearity: VIF
+
+VIF is calculated for each independent variable in the regression model. For each variable, the VIF is obtained by regressing that variable against all the other independent variables in the model.
+
+VIF = 1 / (1 - R²)
+
+- VIF = 1: No multicollinearity. The variable is not correlated with any other independent variables.
+- VIF > 1 and < 5: Moderate multicollinearity. The variable is correlated with other independent variables but not to a severe extent.
+- VIF > 5: High multicollinearity. The variable is highly correlated with other independent variables, which may cause challenges in interpreting the coefficient estimates.
+
+```{r}
+cor(USArrests)
+```
+
+
+```{r}
+regclass::VIF(Model)
+```
+
+## Statistical tests
+
+### Correlation of the residuals
+
+```{r}
+car::durbinWatsonTest(Model)
+
+# H0 (null hypothesis): There is no correlation among the residuals.
+# HA (alternative hypothesis): The residuals are autocorrelated.
+
+# p-value is less than 0.05, reject the null hypothesis and conclude that the residuals in this regression model are autocorrelated
+```
+
+### Normality of the residuals
+
+```{r}
+tseries::jarque.bera.test(residuals(Model))
+
+# The null hypothesis is that the data are normally distributed
+# If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that the data are not normally distributed.
+```
+
+```{r}
+ks.test(residuals(Model), "pnorm")
+
+#  If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that the residuals do not follow a normal distribution.
+```
+
+### Heteroscedasticity of the residuals
+
+```{r}
+lmtest::bptest(Model)
+
+#  If the p-value is less than the significance level (usually 0.05), we reject the null hypothesis and conclude that there is evidence of heteroscedasticity in the residuals.
+```
+
+## How to compare models?
+
+```{r}
+logLik(Model)
+AIC(Model)
+BIC(Model)
+```
+```{r}
+Model_1 <- lm("Murder ~ Assault + UrbanPop + Rape", data = USArrests)
+Model_2 <- lm("Murder ~ Assault + UrbanPop", data = USArrests)
+```
+
+
+```{r}
+summary(Model_1)
+```
+
+```{r}
+summary(Model_2)
+```
+
+
+```{r}
+summary(Model_1)$r.squared
+summary(Model_2)$r.squared
+
+summary(Model_1)$adj.r.squared
+summary(Model_2)$adj.r.squared
+
+logLik(Model_1)
+logLik(Model_2)
+
+AIC(Model_1)
+AIC(Model_2)
+
+BIC(Model_1)
+BIC(Model_2)
+```
+
+```{r}
+anova(Model_1, Model_2)
+```
+
+If p value is small, then...?
+
+The LRT is used to assess whether the more complex model (alternative model) provides a significantly better fit compared to the simpler model (null model).
+
+A smaller p-value indicates stronger evidence against the null hypothesis (that the two models are the same)
+
+- Small p value: We can conclude that the more complex model provides a significantly better fit compared to the simpler model. The additional variables or complexity in the alternative model are considered important and contribute to the model's improved fit.
+
+- Large p values:  We do not have enough evidence to conclude that the more complex model provides a significantly better fit compared to the simpler model. 
+
+
+## A note on LRT
+
+My note: I hate using the anova() function. It creates confusion. There (at least) another two alternatives
+
+```{r}
+lmtest::lrtest(Model_1, Model_2)
+```
+
+The likelihood ratio test statistic is calculated as the ratio of the likelihoods of the two models:
+
+LR = -2 * (log(L₀(β₀)) - log(L₁(β₁)))
+df = p₁ - p₀
+
+
+
+```{r}
+lrt <- -2 * (logLik(Model_2) - logLik(Model_1))
+
+df <- length(coef(Model_1)) - length(coef(Model_2))
+
+# Calculate the p-value using the chi-square distribution
+p_value <- 1 - pchisq(lrt, df)
+
+p_value
+```
+
+# Another example
+
+```{r}
+# install.packages("datarium")
+# devtools::install_github("kassmbara/datarium")
+
+library(datarium)
+```
+
+```{r}
+data("marketing", package = "datarium")
+marketing
+```
+
+```{r}
+cor(marketing)
+```
+
+```{r}
+marketing %<>% 
+  mutate(Total =  youtube + facebook + newspaper) %>% 
+  mutate(Prop_Newspaper = newspaper/Total) %>% 
+  mutate(Prop_Youtube = youtube/Total)
+```
+
+
+```{r}
+ggplot(data = marketing) +
+  geom_point(aes( x= Prop_Newspaper     , y = sales)) +
+  theme_light()
+```
+
+```{r}
+ggplot(data = marketing) +
+  geom_point(aes( x= Prop_Youtube, y = sales)) +
+  theme_light()
+```
+
+```{r}
+ggplot(data = marketing) +
+  geom_point(aes( x= newspaper     , y = sales)) +
+  theme_light()
+```
+
+
+```{r}
+summary(marketing)
+```
+
+
+```{r}
+Model_Sales_Marketing <- lm("sales ~ youtube + facebook + newspaper", 
+                            data = marketing)
+```
+
+```{r}
+summary(Model_Sales_Marketing)
+```
+
+```{r}
+plot(Model_Sales_Marketing)
+```
+
+
+```{r}
+summary(lm("sales ~ youtube + facebook + newspaper", data = marketing))
+summary(lm("sales ~ youtube + facebook", data = marketing))
+summary(lm("sales ~ youtube", data = marketing))
+summary(lm("sales ~  facebook + newspaper", data = marketing))
+summary(lm("sales ~  newspaper", data = marketing))
+
+```
+
+
+# A note on categorical variables
+
+```{r}
+data("Salaries", package = "carData")
+```
+
+```{r}
+Salaries
+```
+
+
+```{r}
+Model_1 <- lm("salary ~ sex", data = Salaries)
+summary(Model_1)
+```
+
+```{r}
+class(Salaries$sex)
+levels(Salaries$sex)
+```
+
+```{r}
+Salaries %<>%
+  mutate(Sex_Character = sex) %>% 
+  mutate(Sex_Male = if_else(Sex_Character == "Male", 1, 0),
+         Sex_Female = if_else(Sex_Character == "Female", 1, 0))
+
+
+# Salario = B0 +B_M*Male
+
+
+```
+
+
+
+```{r}
+Salaries
+```
+
+
+```{r}
+Model_2 <- lm("salary ~ Sex_Male", data = Salaries)
+summary(Model_2)
+```
+
+```{r}
+Model_3 <- lm("salary ~ Sex_Female", data = Salaries)
+summary(Model_3)
+```
+
+```{r}
+Salaries %>% group_by(sex) %>% summarise(MeanPerSex = mean(salary),
+                                         PeopleInSurvey = n())
+```
+
+```{r}
+101002.4 - 115090.4	
+```
+
+
+# A note on interactions
+
+```{r}
+names(Salaries)
+```
+
+```{r}
+Model_1 <- Salaries %>% lm("salary ~ yrs.service + discipline", data = .)
+summary(Model_1)
+```
+
+
+```{r}
+class(Salaries$discipline)
+levels(Salaries$discipline)
+```
+
+```{r}
+Salaries$discipline <- as.character(Salaries$discipline)
+
+Salaries$discipline <- factor(Salaries$discipline, levels = c("B", "A"))
+```
+
+
+```{r}
+Salaries %>% group_by(discipline) %>% summarize(Meam =mean(salary), N = n()) 
+```
+
+```{r}
+names(Salaries)
+```
+
+```{r}
+names(Salaries)[4] <- "Years_Service"
+```
+
+```{r}
+names(Salaries)
+```
+
+```{r}
+Salaries %<>%
+  mutate(Sociology = if_else(discipline == "A", 1, 0),
+         Engineer = if_else(discipline == "B", 1, 0)) %>% 
+  mutate(Interac_YrServices_Engineer = Years_Service*Engineer) %>% 
+  mutate(Interac_YrServices_Sociology = Years_Service*Sociology)
+```
+
+
+```{r}
+Equation_0 <- "salary ~ Years_Service + discipline + Years_Service*discipline"
+
+Equation_1 <- "salary ~ Years_Service + Sociology + Years_Service*Sociology"
+
+Equation_2 <- "salary ~ Years_Service + Sociology + Interac_YrServices_Sociology"
+```
+
+
+```{r}
+summary(lm(Equation_0, data = Salaries))
+```
+
+```{r}
+summary(lm(Equation_1, data = Salaries))
+```
+
+```{r}
+summary(lm(Equation_2, data = Salaries))
+```
+
+```{r}
+names(Salaries)
+```
+
+
+```{r}
+Equation_1 <- "salary ~ Years_Service + sex + discipline + sex*discipline"
+Equation_2 <- "salary ~ Years_Service + Sex_Male + Sociology + Sex_Male*Sociology"
+
+Equation_3 <- "salary ~ Years_Service + Sex_Male + Engineer + Sex_Male*Engineer"
+```
+
+
+
+```{r}
+summary(lm(Equation_1, data = Salaries))
+```
+
+```{r}
+summary(lm(Equation_2, data = Salaries))
+```
+
+
+```{r}
+summary(lm(Equation_3, data = Salaries))
+```
+
+# A note on transformations
+
+[From this resource](https://data.library.virginia.edu/interpreting-log-transformations-in-a-linear-model/):
+
+
+- **"Only the dependent/response variable is log-transformed.** Exponentiate the coefficient, subtract one from this number, and multiply by 100. This gives the percent increase (or decrease) in the response for every one-unit increase in the independent variable. Example: the coefficient is 0.198. (exp(0.198) – 1) * 100 = 21.9. For every one-unit increase in the independent variable, our dependent variable increases by about 22%.
+
+- **Only independent/predictor variable(s) is log-transformed.** Divide the coefficient by 100. This tells us that a 1% increase in the independent variable increases (or decreases) the dependent variable by (coefficient/100) units. Example: the coefficient is 0.198. 0.198/100 = 0.00198. For every 1% increase in the independent variable, our dependent variable increases by about 0.002. For x percent increase, multiply the coefficient by log(1.x). Example: For every 10% increase in the independent variable, our dependent variable increases by about 0.198 * log(1.10) = 0.02.
+
+- **Both dependent/response variable and independent/predictor variable(s) are log-transformed.** Interpret the coefficient as the percent increase in the dependent variable for every 1% increase in the independent variable. Example: the coefficient is 0.198. For every 1% increase in the independent variable, our dependent variable increases by about 0.20%. For x percent increase, calculate 1.x to the power of the coefficient, subtract 1, and multiply by 100. Example: For every 20% increase in the independent variable, our dependent variable increases by about (1.20 0.198 – 1) * 100 = 3.7 percent."
+
+
+# A note on "Marginals"
+
+Marginal effects refer to the change in the predicted value of the dependent variable that results from a one-unit change in one of the independent variables, while holding all other independent variables constant.
+
+Think of it as the specific slope on each point in the curve. 
+
+We could:
+
+- Caclulate the marginal effect for each individual
+- Calculate the marginal effect of a set of individuals
+- Calculate **the Average Marginal Effect AME**
+- Calculate the **Marginal Effect on the Mean MEM**
+
+
+
+install.packages("margins")
+library(margins)
+mfx <- margins(m, variables = "x")
+summary(mfx)
+
+
+library(wooldridge)
+data("card")
+
+library(jtools)
+export_sums()
+
+mfx::logitmfx()
+mfx::probitmfx()
+
+margins::margins()
+
+

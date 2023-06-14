@@ -10,7 +10,7 @@ output:
       smooth_scroll: false
     number_sections: true
 ---
-
+ 
 # Libraries and raw data
 
 ```{r libraries used}
@@ -18,6 +18,10 @@ library(tidyverse)
 library(magrittr)
 library(sf)
 ```
+
+Make sure you have the following sub-folder in your folder: https://www.dropbox.com/scl/fo/xqonwazhrwml6wp3n28md/h?dl=0&rlkey=qd0a56dfzfpqppcan1xi23597 
+
+Please note that the sub-folder is not included in the github repo due to storage constraints
 
 ```{r Districts shapefiles}
 Zones <- st_read(

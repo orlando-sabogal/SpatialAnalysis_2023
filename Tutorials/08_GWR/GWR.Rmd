@@ -26,7 +26,7 @@ library(spgwr) # GWR
 ```
 
 ```{r}
-load("../03_MexicoCity_HTS/Mexico_HTS.RData")
+load("../04_MexicoCity_HTS/Mexico_HTS.RData")
 ls()
 ```
 
@@ -46,9 +46,9 @@ summary(MexicoCity_HTS$Total_Homes)
 ```
 
 ## Map preparation
-
+ 
 ```{r}
-MexicoCity_Fringe <- st_read("../03_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
+MexicoCity_Fringe <- st_read("../04_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
 ```
 
 ```{r}
@@ -58,6 +58,17 @@ BB_Districts
 ```
 
 # GWR
+
+```{r}
+MexicoCity_HTS %<>%
+  mutate(CarTrips_PerPopulation = Trips_Automovil/TotalPeople,
+         Prop_Male = Total_Male/TotalPeople,
+         Prop_HomesWithCars = Homes_With_Cars/Total_Homes,
+         Prop_HomesWithBicycles = Homes_With_Bicycles/Total_Homes,
+         Prop_Education_Low = TotalEducation_Low/TotalPeople,
+         Prop_Education_Medium = TotalEducation_Medium/TotalPeople,
+         Prop_Education_High = TotalEducation_High/TotalPeople)
+```
 
 ```{r}
 ModelEquation <- "CarTrips_PerPopulation ~ 

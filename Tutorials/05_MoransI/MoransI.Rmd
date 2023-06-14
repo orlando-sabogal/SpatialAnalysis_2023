@@ -23,7 +23,7 @@ library(spdep) # Spatial weights, Moran's I, and LISA
 ```
 
 ```{r}
-load("../03_MexicoCity_HTS/Mexico_HTS.RData")
+load("../04_MexicoCity_HTS/Mexico_HTS.RData")
 ls()
 ```
 
@@ -191,7 +191,7 @@ BB_Districts
 ```
 
 ```{r}
-MexicoCity_Fringe <- st_read("../03_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
+MexicoCity_Fringe <- st_read("../04_MexicoCity_HTS/UrbanFringe_MexicoCity.shp")
 ```
 
 ```{r}
