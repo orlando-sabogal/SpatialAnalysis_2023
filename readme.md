@@ -1,6 +1,6 @@
 # Spatial Analysis
 
-This is a repository for a (summer course)[https://orlando-sabogal.github.io/SpatialAnalysis_2023/] on Spatial Analysis delivered to the MSc in Transportation at Universidad Nacional de Colombia at Manizales.
+This is a repository for a [summer course](https://orlando-sabogal.github.io/SpatialAnalysis_2023/) on Spatial Analysis delivered to the MSc in Transportation at Universidad Nacional de Colombia at Manizales.
 
 ## Introduction
 
